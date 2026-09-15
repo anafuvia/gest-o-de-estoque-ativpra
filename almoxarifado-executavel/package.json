@@ -1,0 +1,15 @@
+{
+  "name": "almoxarifado-embalagens",
+  "version": "1.0.0",
+  "description": "Sistema de gestão de estoque para indústria de embalagens",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "express-session": "^1.18.1",
+    "sql.js": "^1.13.0"
+  }
+}

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Produtos | Almoxarifado</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <strong>🧾 Cadastro de Produtos</strong>
+    <div class="actions">
+      <span data-user></span>
+      <a class="btn secondary" href="index.html">Voltar</a>
+      <button class="btn secondary" data-logout>Sair</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card" style="margin-bottom:20px">
+      <h2 id="formTitulo">Novo produto</h2>
+      <form id="produtoForm" class="form-grid">
+        <input type="hidden" id="id">
+
+        <div>
+          <label for="nome">Nome *</label>
+          <input id="nome" required>
+        </div>
+
+        <div>
+          <label for="categoria">Categoria *</label>
+          <input id="categoria" placeholder="Ex.: Caixas, Frascos" required>
+        </div>
+
+        <div>
+          <label for="unidade">Unidade *</label>
+          <input id="unidade" placeholder="Ex.: unidade, rolo" required>
+        </div>
+
+        <div>
+          <label for="estoqueAtual">Estoque atual *</label>
+          <input id="estoqueAtual" type="number" min="0" required>
+        </div>
+
+        <div>
+          <label for="estoqueMinimo">Estoque mínimo *</label>
+          <input id="estoqueMinimo" type="number" min="0" required>
+        </div>
+
+        <div class="full">
+          <label for="descricao">Descrição</label>
+          <textarea id="descricao" rows="3"></textarea>
+        </div>
+
+        <div class="full actions-row">
+          <button type="submit">Salvar produto</button>
+          <button type="button" id="cancelar" class="btn secondary">Cancelar edição</button>
+        </div>
+      </form>
+      <div id="mensagem" class="message"></div>
+    </section>
+
+    <section class="card">
+      <h2>Produtos cadastrados</h2>
+      <div class="toolbar">
+        <input id="busca" placeholder="Buscar por nome, categoria ou descrição">
+        <button id="buscar">Buscar</button>
+        <button id="limparBusca" class="btn secondary">Limpar</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Categoria</th>
+              <th>Unidade</th>
+              <th>Atual</th>
+              <th>Mínimo</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaProdutos"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    const form = document.getElementById("produtoForm");
+    const mensagem = document.getElementById("mensagem");
+    let produtosCache = [];
+
+    async function listarProdutos(busca = "") {
+      try {
+        produtosCache = await api("/api/produtos?busca=" + encodeURIComponent(busca));
+        const tbody = document.getElementById("tabelaProdutos");
+        tbody.innerHTML = "";
+
+        produtosCache.forEach(produto => {
+          const tr = document.createElement("tr");
+          if (Number(produto.estoque_atual) < Number(produto.estoque_minimo)) {
+            tr.classList.add("low-stock");
+          }
+
+          tr.innerHTML = `
+            <td>${produto.nome}</td>
+            <td>${produto.categoria}</td>
+            <td>${produto.unidade}</td>
+            <td>${produto.estoque_atual}</td>
+            <td>${produto.estoque_minimo}</td>
+            <td>
+              <div class="actions-row">
+                <button onclick="editarProduto(${produto.id})">Editar</button>
+                <button class="btn danger" onclick="excluirProduto(${produto.id})">Excluir</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+        if (produtosCache.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6">Nenhum produto encontrado.</td></tr>`;
+        }
+      } catch (erro) {
+        mostrarMensagem(mensagem, erro.message, "error");
+      }
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      const id = document.getElementById("id").value;
+      const body = {
+        nome: document.getElementById("nome").value,
+        categoria: document.getElementById("categoria").value,
+        unidade: document.getElementById("unidade").value,
+        estoque_atual: document.getElementById("estoqueAtual").value,
+        estoque_minimo: document.getElementById("estoqueMinimo").value,
+        descricao: document.getElementById("descricao").value
+      };
+
+      try {
+        await api(id ? `/api/produtos/${id}` : "/api/produtos", {
+          method: id ? "PUT" : "POST",
+          body: JSON.stringify(body)
+        });
+
+        mostrarMensagem(mensagem, id ? "Produto atualizado." : "Produto cadastrado.");
+        limparFormulario();
+        listarProdutos();
+      } catch (erro) {
+        mostrarMensagem(mensagem, erro.message, "error");
+      }
+    });
+
+    function editarProduto(id) {
+      const p = produtosCache.find(item => Number(item.id) === Number(id));
+      if (!p) return;
+
+      document.getElementById("id").value = p.id;
+      document.getElementById("nome").value = p.nome;
+      document.getElementById("categoria").value = p.categoria;
+      document.getElementById("unidade").value = p.unidade;
+      document.getElementById("estoqueAtual").value = p.estoque_atual;
+      document.getElementById("estoqueMinimo").value = p.estoque_minimo;
+      document.getElementById("descricao").value = p.descricao || "";
+      document.getElementById("formTitulo").textContent = "Editar produto";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function excluirProduto(id) {
+      if (!confirm("Deseja realmente excluir este produto?")) return;
+
+      try {
+        await api(`/api/produtos/${id}`, { method: "DELETE" });
+        mostrarMensagem(mensagem, "Produto excluído.");
+        listarProdutos();
+      } catch (erro) {
+        mostrarMensagem(mensagem, erro.message, "error");
+      }
+    }
+
+    function limparFormulario() {
+      form.reset();
+      document.getElementById("id").value = "";
+      document.getElementById("formTitulo").textContent = "Novo produto";
+    }
+
+    document.getElementById("cancelar").addEventListener("click", limparFormulario);
+    document.getElementById("buscar").addEventListener("click", () => {
+      listarProdutos(document.getElementById("busca").value);
+    });
+    document.getElementById("limparBusca").addEventListener("click", () => {
+      document.getElementById("busca").value = "";
+      listarProdutos();
+    });
+
+    listarProdutos();
+  </script>
+</body>
+</html>

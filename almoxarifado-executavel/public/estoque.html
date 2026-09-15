@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestão de Estoque | Almoxarifado</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <strong>🔄 Gestão de Estoque</strong>
+    <div class="actions">
+      <span data-user></span>
+      <a class="btn secondary" href="index.html">Voltar</a>
+      <button class="btn secondary" data-logout>Sair</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card" style="margin-bottom:20px">
+      <h2>Registrar movimentação</h2>
+
+      <form id="movForm" class="form-grid">
+        <div>
+          <label for="produto">Produto *</label>
+          <select id="produto" required></select>
+        </div>
+
+        <div>
+          <label for="tipo">Tipo *</label>
+          <select id="tipo" required>
+            <option value="entrada">Entrada</option>
+            <option value="saida">Saída</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="quantidade">Quantidade *</label>
+          <input id="quantidade" type="number" min="1" required>
+        </div>
+
+        <div>
+          <label for="dataMov">Data da movimentação *</label>
+          <input id="dataMov" type="date" required>
+        </div>
+
+        <div class="full">
+          <button type="submit">Registrar movimentação</button>
+        </div>
+      </form>
+
+      <div id="mensagem" class="message"></div>
+    </section>
+
+    <section class="card" style="margin-bottom:20px">
+      <h2>Estoque atual — ordem alfabética</h2>
+      <small>A ordenação é feita no servidor com o algoritmo Insertion Sort.</small>
+      <div class="table-wrap" style="margin-top:14px">
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Categoria</th>
+              <th>Atual</th>
+              <th>Mínimo</th>
+              <th>Situação</th>
+            </tr>
+          </thead>
+          <tbody id="estoqueTabela"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Histórico de movimentações</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Tipo</th>
+              <th>Quantidade</th>
+              <th>Data</th>
+              <th>Responsável</th>
+            </tr>
+          </thead>
+          <tbody id="historico"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    const mensagem = document.getElementById("mensagem");
+
+    async function carregarEstoque() {
+      try {
+        const produtos = await api("/api/estoque/produtos");
+
+        const select = document.getElementById("produto");
+        select.innerHTML = '<option value="">Selecione...</option>';
+
+        const tbody = document.getElementById("estoqueTabela");
+        tbody.innerHTML = "";
+
+        produtos.forEach(p => {
+          const option = document.createElement("option");
+          option.value = p.id;
+          option.textContent = `${p.nome} — estoque: ${p.estoque_atual}`;
+          select.appendChild(option);
+
+          const baixo = Number(p.estoque_atual) < Number(p.estoque_minimo);
+          const tr = document.createElement("tr");
+          if (baixo) tr.classList.add("low-stock");
+          tr.innerHTML = `
+            <td>${p.nome}</td>
+            <td>${p.categoria}</td>
+            <td>${p.estoque_atual}</td>
+            <td>${p.estoque_minimo}</td>
+            <td>${baixo ? "⚠️ Abaixo do mínimo" : "✅ Normal"}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (erro) {
+        mostrarMensagem(mensagem, erro.message, "error");
+      }
+    }
+
+    async function carregarHistorico() {
+      try {
+        const dados = await api("/api/movimentacoes");
+        const tbody = document.getElementById("historico");
+        tbody.innerHTML = "";
+
+        dados.forEach(m => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${m.produto}</td>
+            <td><span class="badge ${m.tipo}">${m.tipo}</span></td>
+            <td>${m.quantidade}</td>
+            <td>${m.data_movimentacao}</td>
+            <td>${m.responsavel}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (erro) {
+        mostrarMensagem(mensagem, erro.message, "error");
+      }
+    }
+
+    document.getElementById("movForm").addEventListener("submit", async event => {
+      event.preventDefault();
+
+      try {
+        const dados = await api("/api/movimentacoes", {
+          method: "POST",
+          body: JSON.stringify({
+            produto_id: document.getElementById("produto").value,
+            tipo: document.getElementById("tipo").value,
+            quantidade: document.getElementById("quantidade").value,
+            data_movimentacao: document.getElementById("dataMov").value
+          })
+        });
+
+        if (dados.abaixo_minimo) {
+          mostrarMensagem(mensagem, dados.alerta, "warning");
+          alert(dados.alerta);
+        } else {
+          mostrarMensagem(mensagem, dados.mensagem, "success");
+        }
+
+        document.getElementById("quantidade").value = "";
+        await carregarEstoque();
+        await carregarHistorico();
+      } catch (erro) {
+        mostrarMensagem(mensagem, erro.message, "error");
+      }
+    });
+
+    document.getElementById("dataMov").valueAsDate = new Date();
+    carregarEstoque();
+    carregarHistorico();
+  </script>
+</body>
+</html>

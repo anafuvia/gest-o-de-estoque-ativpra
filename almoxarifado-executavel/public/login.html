@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Almoxarifado</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <div class="brand">
+      <div class="logo">📦</div>
+      <div>
+        <h1 style="margin:0">Almoxarifado</h1>
+        <small>Gestão de estoque de embalagens</small>
+      </div>
+    </div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="usuario">Usuário</label>
+        <input id="usuario" autocomplete="username" required>
+      </div>
+
+      <div class="field">
+        <label for="senha">Senha</label>
+        <input id="senha" type="password" autocomplete="current-password" required>
+      </div>
+
+      <div id="mensagem" class="message"></div>
+      <button type="submit" style="width:100%">Entrar</button>
+    </form>
+
+    <p style="margin-bottom:0"><small>Teste: usuário <strong>ana</strong> e senha <strong>1234</strong>.</small></p>
+  </main>
+
+  <script>
+    const form = document.getElementById("loginForm");
+    const mensagem = document.getElementById("mensagem");
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+
+      try {
+        const resposta = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            usuario: document.getElementById("usuario").value,
+            senha: document.getElementById("senha").value
+          })
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+          mensagem.textContent = dados.erro || "Falha no login.";
+          mensagem.className = "message show error";
+          setTimeout(() => location.href = "/login.html", 1800);
+          return;
+        }
+
+        location.href = "/index.html";
+      } catch (erro) {
+        mensagem.textContent = "Não foi possível conectar ao servidor.";
+        mensagem.className = "message show error";
+      }
+    });
+  </script>
+</body>
+</html>

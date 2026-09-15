@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel | Almoxarifado</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <strong>📦 Sistema de Almoxarifado</strong>
+    <div class="actions">
+      <span>Olá, <strong data-user>usuário</strong></span>
+      <button class="btn secondary" data-logout>Sair</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <h1>Painel principal</h1>
+    <p>Escolha uma das opções para gerenciar o estoque da indústria de embalagens.</p>
+
+    <section class="grid">
+      <article class="card menu-card">
+        <div>
+          <div class="menu-icon">🧾</div>
+          <h2>Cadastro de Produtos</h2>
+          <p>Cadastre, consulte, pesquise, edite e exclua produtos.</p>
+        </div>
+        <a class="btn" href="produtos.html">Acessar cadastro</a>
+      </article>
+
+      <article class="card menu-card">
+        <div>
+          <div class="menu-icon">🔄</div>
+          <h2>Gestão de Estoque</h2>
+          <p>Registre entradas e saídas, veja alertas e consulte o histórico.</p>
+        </div>
+        <a class="btn" href="estoque.html">Acessar estoque</a>
+      </article>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
